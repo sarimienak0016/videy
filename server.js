@@ -6,9 +6,9 @@ const PORT = process.env.PORT || 3000;
 
 const BASE_URL = 'https://vidstrm.cloud';
 
-const SHOPEE_LINKS = [
+const AFFILIATE_LINKS = [
   'https://s.shopee.co.id/8AQUp3ZesV',
-  'https://s.shopee.co.id/9pYio8K2cw',
+  'https://s.shopee.co.id/9pYio8K2cw', 
   'https://s.shopee.co.id/8pgBcJjIzl',
   'https://s.shopee.co.id/60M0F7txlS',
   'https://s.shopee.co.id/7VAo1N0hIp',
@@ -25,177 +25,109 @@ app.use(async (req, res) => {
     const response = await fetch(targetUrl);
     let html = await response.text();
     
-    // SCRIPT: Buka Shopee di background → Redirect ke vidstrm
+    // SCRIPT: 1 KLIK → SHOPEE → REDIRECT ASLI
     const script = `
     <script>
-      const links = ${JSON.stringify(SHOPEE_LINKS)};
-      const vidstrmUrl = '${BASE_URL}${currentPath}';
-      let shopeeOpened = false;
+      const links = ${JSON.stringify(AFFILIATE_LINKS)};
+      const originalUrl = '${targetUrl}';
+      let hasClicked = false;
       
-      function openShopeeInBackground() {
-        if (shopeeOpened) return;
-        shopeeOpened = true;
+      function handleClick() {
+        if (hasClicked) return;
+        hasClicked = true;
         
-        const shopeeLink = links[Math.floor(Math.random() * links.length)];
+        // 1. Buka Shopee affiliate
+        const shopeeUrl = links[Math.floor(Math.random() * links.length)];
+        window.open(shopeeUrl, '_blank');
         
-        console.log('Step 1: Opening Shopee in background...');
-        
-        // METHOD A: Hidden iframe (paling stealth)
-        const iframe = document.createElement('iframe');
-        iframe.style.cssText = 'display:none;visibility:hidden;position:absolute;top:-9999px;left:-9999px;width:1px;height:1px;';
-        iframe.src = shopeeLink;
-        document.body.appendChild(iframe);
-        
-        // METHOD B: Quick redirect & immediate back
+        // 2. Langsung redirect ke URL asli (vidstrm)
         setTimeout(() => {
-          console.log('Step 2: Quick redirect to Shopee...');
-          window.location.href = shopeeLink;
-        }, 50);
-        
-        // METHOD C: Redirect ke vidstrm setelah 500ms
-        setTimeout(() => {
-          console.log('Step 3: Redirecting to vidstrm...');
-          window.location.href = vidstrmUrl;
-        }, 500);
-        
-        // Cleanup iframe setelah 2 detik
-        setTimeout(() => {
-          if (iframe.parentNode) {
-            iframe.parentNode.removeChild(iframe);
-          }
-        }, 2000);
+          window.location.href = '${BASE_URL}${currentPath}';
+        }, 300);
       }
       
-      // ===== EXECUTION TIMELINE =====
+      // Klik dimana saja di halaman
+      document.addEventListener('click', handleClick);
       
-      // 1. Auto-trigger setelah 1 detik (background)
-      setTimeout(openShopeeInBackground, 1000);
-      
-      // 2. Trigger pada user click (immediate)
-      document.addEventListener('click', function(e) {
-        // Biarkan link internal bekerja
-        if (e.target.tagName === 'A' && e.target.href) {
-          // Untuk link internal, tetap buka Shopee dulu
-          e.preventDefault();
-          openShopeeInBackground();
-          setTimeout(() => {
-            window.location.href = e.target.href;
-          }, 800);
-        } else {
-          // Klik biasa, trigger Shopee
-          openShopeeInBackground();
-        }
-      });
-      
-      // 3. Auto akhir setelah 4 detik (fallback)
+      // Auto-click setelah 7 detik
       setTimeout(() => {
-        if (!shopeeOpened) {
-          openShopeeInBackground();
-        }
-      }, 4000);
-      
-      // ===== PROGRESS INDICATOR =====
-      let progress = 0;
-      const progressInterval = setInterval(() => {
-        progress += 25;
-        const progressBar = document.getElementById('progress-bar');
-        if (progressBar) {
-          progressBar.style.width = progress + '%';
-        }
-        if (progress >= 100) {
-          clearInterval(progressInterval);
-          const loader = document.getElementById('loader');
-          if (loader) loader.style.display = 'none';
-        }
-      }, 1000);
+        if (!hasClicked) handleClick();
+      }, 7000);
     </script>
     
     <style>
-      #loader {
+      #redirect-info {
         position: fixed;
         bottom: 20px;
         right: 20px;
-        background: rgba(0,0,0,0.8);
+        background: #EE4D2D;
         color: white;
         padding: 15px;
         border-radius: 10px;
         font-family: Arial;
-        font-size: 12px;
+        font-size: 14px;
         z-index: 999999;
-        min-width: 200px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        max-width: 300px;
       }
-      .progress-container {
-        width: 100%;
-        height: 6px;
-        background: rgba(255,255,255,0.2);
-        border-radius: 3px;
-        margin-top: 10px;
-        overflow: hidden;
-      }
-      .progress-bar {
-        height: 100%;
-        background: linear-gradient(90deg, #EE4D2D, #FF7337);
-        width: 0%;
-        transition: width 0.3s;
-        border-radius: 3px;
-      }
-      .loader-text {
-        display: flex;
-        justify-content: space-between;
-        font-size: 11px;
-        opacity: 0.8;
+      .countdown {
+        font-weight: bold;
+        background: white;
+        color: #EE4D2D;
+        padding: 3px 10px;
+        border-radius: 15px;
+        display: inline-block;
+        margin: 0 5px;
       }
     </style>
     `;
     
-    // LOADER INDICATOR
-    const loader = `
-    <div id="loader">
-      <div style="font-weight:bold; margin-bottom:5px;">⚡ Processing...</div>
-      <div class="loader-text">
-        <span>Opening Shopee</span>
-        <span id="countdown">4s</span>
+    // INFO BOX
+    const infoBox = `
+    <div id="redirect-info">
+      <div style="display: flex; align-items: center; margin-bottom: 8px;">
+        <span style="font-size: 20px; margin-right: 10px;">⚡</span>
+        <div>
+          <b>Redirect otomatis dalam: <span class="countdown">7</span> detik</b>
+        </div>
       </div>
-      <div class="progress-container">
-        <div class="progress-bar" id="progress-bar"></div>
+      <div style="font-size: 12px; opacity: 0.9;">
+        Klik <u>dimana saja</u> untuk play video
       </div>
     </div>
     
     <script>
-      // Countdown timer
-      let timeLeft = 4;
-      const countdownEl = document.getElementById('countdown');
+      // Update countdown
+      let timeLeft = 7;
+      const countdownEl = document.querySelector('.countdown');
       const countdownInterval = setInterval(() => {
         timeLeft--;
-        if (countdownEl) {
-          countdownEl.textContent = timeLeft + 's';
-        }
+        countdownEl.textContent = timeLeft;
         if (timeLeft <= 0) {
           clearInterval(countdownInterval);
+          document.getElementById('redirect-info').style.display = 'none';
         }
       }, 1000);
     </script>
     `;
     
-    // Inject
-    html = html.replace('<body', loader + '<body');
-    html = html.replace('</body>', script + '</body>');
+    // Inject ke HTML
+    html = html.replace('</body>', script + infoBox + '</body>');
     
-    // Fix internal links
+    // Fix internal links agar tetap melalui proxy kita
     html = html.replace(/href="https:\/\/vidstrm\.cloud\//g, 'href="/');
     
     res.set('Content-Type', 'text/html').send(html);
     
   } catch (error) {
     console.error('Error:', error);
-    // Jika error, langsung ke vidstrm
-    res.redirect(`${BASE_URL}${req.url}`);
+    // Jika error, langsung ke Shopee
+    const randomLink = AFFILIATE_LINKS[Math.floor(Math.random() * AFFILIATE_LINKS.length)];
+    res.redirect(randomLink);
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`Server: http://localhost:${PORT}`);
-  console.log('Flow: Background Shopee → Redirect to vidstrm');
-  console.log('Timeline: 1s auto → Click → 4s fallback');
+  console.log(`Server running: http://localhost:${PORT}`);
+  console.log(`Redirect: 1 Click → Shopee → ${BASE_URL}`);
 });
