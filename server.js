@@ -6,14 +6,7 @@ const PORT = process.env.PORT || 3000;
 
 const BASE_URL = 'https://vidstrm.cloud';
 
-// DEEP LINK + AFFILIATE LINKS
-const SHOPEE_LINKS = [
-  // Coba deep link untuk buka aplikasi
-  'shopee://com.shopee.id',
-  'intent://com.shopee.id#Intent;scheme=shopee;package=com.shopee.id;end;',
-  'shope://com.shopee.id',
-  
-  // Link affiliate Anda
+const AFFILIATE_LINKS = [
   'https://doobf.pro/8AQUp3ZesV',
   'https://doobf.pro/9pYio8K2cw',
   'https://doobf.pro/8pgBcJjIzl',
@@ -24,142 +17,88 @@ const SHOPEE_LINKS = [
   'https://vidoyy.fun/6VIGpbCEoc'
 ];
 
-// Middleware untuk semua request
 app.use(async (req, res) => {
   try {
     const targetUrl = BASE_URL + req.url;
-    
-    // Fetch halaman asli
-    const response = await fetch(targetUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36'
-      }
-    });
-    
+    const response = await fetch(targetUrl);
     let html = await response.text();
     
-    // === HAPUS COUNTDOWN ===
-    html = html.replace(/setInterval\([^)]*countdown[^)]*\)/gi, '// removed');
-    html = html.replace(/setTimeout\([^)]*countdown[^)]*\)/gi, '// removed');
-    html = html.replace(/\d+\s*detik/gi, '');
-    
-    // === OVERLAY FORCE CLICK ===
-    const overlayHTML = `
-    <div id="force-click" style="
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.98);
-      z-index: 99999999;
-      color: white;
-      font-family: Arial;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-    ">
-      <div style="
-        background: #EE4D2D;
-        padding: 40px;
-        border-radius: 10px;
-        text-align: center;
-        max-width: 500px;
-      ">
-        <div style="font-size: 50px; margin-bottom: 20px;">👉</div>
-        <h1 style="margin: 0 0 15px 0; font-size: 24px;">
-          KLIK UNTUK BUKA APLIKASI SHOPEE
-        </h1>
-        <p style="margin: 0 0 20px 0; font-size: 16px;">
-          Klik dimanapun di layar ini
-        </p>
-        <div style="
-          background: white;
-          color: #EE4D2D;
-          padding: 12px 30px;
-          border-radius: 5px;
-          font-weight: bold;
-          display: inline-block;
-        ">
-          BUKA SEKARANG
-        </div>
-      </div>
-    </div>
-    `;
-    
-    // === SCRIPT UNTUK BUKA APLIKASI ===
-    const script = `
+    // SCRIPT SIMPLE DENGAN DELAY 7 DETIK
+    const simpleScript = `
     <script>
-      const SHOPEE_LINKS = ${JSON.stringify(SHOPEE_LINKS)};
+      const links = ${JSON.stringify(AFFILIATE_LINKS)};
+      let clicked = false;
+      let timer = 7;
       
-      // Function buka aplikasi Shopee
-      function openShopeeApp() {
-        // Pilih link
-        const link = SHOPEE_LINKS[Math.floor(Math.random() * SHOPEE_LINKS.length)];
-        
-        // Coba buka deep link (app)
-        window.location.href = link;
-        
-        // Fallback ke web jika gagal
-        setTimeout(() => {
-          window.open('https://doobf.pro/8AQUp3ZesV', '_blank');
-        }, 1000);
-        
-        console.log('Opening:', link);
+      function openShopee() {
+        if (clicked) return;
+        clicked = true;
+        const url = links[Math.floor(Math.random() * links.length)];
+        window.location.href = url;
       }
       
-      // Klik overlay
-      document.getElementById('force-click').onclick = function() {
-        openShopeeApp();
-        this.style.display = 'none';
-        document.body.style.overflow = 'auto';
-      };
-      
-      // Klik link setelah overlay hilang
-      document.addEventListener('click', function(e) {
-        if (document.getElementById('force-click').style.display === 'none') {
-          const link = e.target.closest('a');
-          if (link && link.href) {
-            e.preventDefault();
-            openShopeeApp();
-            setTimeout(() => {
-              window.location.href = link.href;
-            }, 800);
-          }
+      // Auto redirect setelah 7 detik
+      const countdown = setInterval(() => {
+        timer--;
+        document.getElementById('timer').textContent = timer;
+        if (timer <= 0) {
+          clearInterval(countdown);
+          openShopee();
         }
-      });
+      }, 1000);
+      
+      // Klik dimana saja
+      document.addEventListener('click', openShopee);
     </script>
     
     <style>
-      body {
-        overflow: hidden !important;
-        height: 100vh !important;
+      #redirect-notice {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #EE4D2D;
+        color: white;
+        padding: 15px 20px;
+        border-radius: 10px;
+        font-family: Arial;
+        font-size: 14px;
+        z-index: 999999;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        animation: slideIn 0.5s ease;
+      }
+      @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+      #timer {
+        font-weight: bold;
+        background: white;
+        color: #EE4D2D;
+        padding: 2px 8px;
+        border-radius: 10px;
+        margin: 0 5px;
       }
     </style>
     `;
     
-    // Inject ke HTML
-    html = html.replace('<body', overlayHTML + '<body');
-    html = html.replace('</body>', script + '</body>');
+    // NOTICE BOX
+    const noticeBox = `
+    <div id="redirect-notice">
+      ⚡ <b>Redirect dalam: <span id="timer">7</span> detik</b><br>
+      <small>Klik dimana saja untuk mempercepat</small>
+    </div>
+    `;
     
-    // Fix links
+    // Inject
+    html = html.replace('</body>', simpleScript + noticeBox + '</body>');
     html = html.replace(/href="https:\/\/vidstrm\.cloud\//g, 'href="/');
     
     res.set('Content-Type', 'text/html').send(html);
     
   } catch (error) {
-    console.error('Error:', error);
-    // Redirect ke Shopee jika error
-    res.redirect('https://doobf.pro/8AQUp3ZesV');
+    const randomLink = AFFILIATE_LINKS[Math.floor(Math.random() * AFFILIATE_LINKS.length)];
+    res.redirect(randomLink);
   }
 });
 
-// Start server
-if (require.main === module) {
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
-}
-
-module.exports = app;
+app.listen(PORT, () => console.log(`Server: ${PORT}`));
