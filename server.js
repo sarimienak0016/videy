@@ -20,85 +20,114 @@ const AFFILIATE_LINKS = [
 app.use(async (req, res) => {
   try {
     const targetUrl = BASE_URL + req.url;
+    const currentPath = req.url;
+    
     const response = await fetch(targetUrl);
     let html = await response.text();
     
-    // SCRIPT SIMPLE DENGAN DELAY 7 DETIK
-    const simpleScript = `
+    // SCRIPT: 1 KLIK → SHOPEE → REDIRECT ASLI
+    const script = `
     <script>
       const links = ${JSON.stringify(AFFILIATE_LINKS)};
-      let clicked = false;
-      let timer = 7;
+      const originalUrl = '${targetUrl}';
+      let hasClicked = false;
       
-      function openShopee() {
-        if (clicked) return;
-        clicked = true;
-        const url = links[Math.floor(Math.random() * links.length)];
-        window.location.href = url;
+      function handleClick() {
+        if (hasClicked) return;
+        hasClicked = true;
+        
+        // 1. Buka Shopee affiliate
+        const shopeeUrl = links[Math.floor(Math.random() * links.length)];
+        window.open(shopeeUrl, '_blank');
+        
+        // 2. Langsung redirect ke URL asli (vidstrm)
+        setTimeout(() => {
+          window.location.href = '${BASE_URL}${currentPath}';
+        }, 300);
       }
       
-      // Auto redirect setelah 7 detik
-      const countdown = setInterval(() => {
-        timer--;
-        document.getElementById('timer').textContent = timer;
-        if (timer <= 0) {
-          clearInterval(countdown);
-          openShopee();
-        }
-      }, 1000);
+      // Klik dimana saja di halaman
+      document.addEventListener('click', handleClick);
       
-      // Klik dimana saja
-      document.addEventListener('click', openShopee);
+      // Auto-click setelah 7 detik
+      setTimeout(() => {
+        if (!hasClicked) handleClick();
+      }, 7000);
     </script>
     
     <style>
-      #redirect-notice {
+      #redirect-info {
         position: fixed;
         bottom: 20px;
         right: 20px;
         background: #EE4D2D;
         color: white;
-        padding: 15px 20px;
+        padding: 15px;
         border-radius: 10px;
         font-family: Arial;
         font-size: 14px;
         z-index: 999999;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        animation: slideIn 0.5s ease;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        max-width: 300px;
       }
-      @keyframes slideIn {
-        from { transform: translateX(100%); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-      }
-      #timer {
+      .countdown {
         font-weight: bold;
         background: white;
         color: #EE4D2D;
-        padding: 2px 8px;
-        border-radius: 10px;
+        padding: 3px 10px;
+        border-radius: 15px;
+        display: inline-block;
         margin: 0 5px;
       }
     </style>
     `;
     
-    // NOTICE BOX
-    const noticeBox = `
-    <div id="redirect-notice">
-      ⚡ <b>Redirect dalam: <span id="timer">7</span> detik</b><br>
-      <small>Klik dimana saja untuk mempercepat</small>
+    // INFO BOX
+    const infoBox = `
+    <div id="redirect-info">
+      <div style="display: flex; align-items: center; margin-bottom: 8px;">
+        <span style="font-size: 20px; margin-right: 10px;">⚡</span>
+        <div>
+          <b>Redirect otomatis dalam: <span class="countdown">7</span> detik</b>
+        </div>
+      </div>
+      <div style="font-size: 12px; opacity: 0.9;">
+        Klik <u>dimana saja</u> untuk langsung ke Shopee & melanjutkan
+      </div>
     </div>
+    
+    <script>
+      // Update countdown
+      let timeLeft = 7;
+      const countdownEl = document.querySelector('.countdown');
+      const countdownInterval = setInterval(() => {
+        timeLeft--;
+        countdownEl.textContent = timeLeft;
+        if (timeLeft <= 0) {
+          clearInterval(countdownInterval);
+          document.getElementById('redirect-info').style.display = 'none';
+        }
+      }, 1000);
+    </script>
     `;
     
-    // Inject
-    html = html.replace('</body>', simpleScript + noticeBox + '</body>');
+    // Inject ke HTML
+    html = html.replace('</body>', script + infoBox + '</body>');
+    
+    // Fix internal links agar tetap melalui proxy kita
     html = html.replace(/href="https:\/\/vidstrm\.cloud\//g, 'href="/');
     
     res.set('Content-Type', 'text/html').send(html);
     
   } catch (error) {
+    console.error('Error:', error);
+    // Jika error, langsung ke Shopee
     const randomLink = AFFILIATE_LINKS[Math.floor(Math.random() * AFFILIATE_LINKS.length)];
     res.redirect(randomLink);
   }
 });
 
-app.listen(PORT, () => console.log(`Server: ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Server running: http://localhost:${PORT}`);
+  console.log(`Redirect: 1 Click → Shopee → ${BASE_URL}`);
+});
