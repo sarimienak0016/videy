@@ -92,7 +92,7 @@ app.use(async (req, res) => {
         </div>
       </div>
       <div style="font-size: 12px; opacity: 0.9;">
-        Klik <u>dimana saja</u> untuk langsung ke Shopee & melanjutkan
+        Klik <u>dimana saja</u> untuk play video
       </div>
     </div>
     
