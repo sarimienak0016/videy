@@ -6,30 +6,15 @@ const PORT = process.env.PORT || 3000;
 
 const BASE_URL = 'https://vidstrm.cloud';
 
-// COBA SEMUA FORMAT DEEP LINK YANG MUNGKIN
-const SHOPEE_DEEP_LINKS = [
-  // Format 1: shope.ee (sering work buka app)
-  'https://shope.ee/8AQUp3ZesV',
-  'https://shope.ee/9pYio8K2cw',
-  'https://shope.ee/8pgBcJjIzl',
-  
-  // Format 2: shopee.co.id dengan parameter affiliate
-  'https://shopee.co.id/share/8AQUp3ZesV',
-  'https://shopee.co.id/affiliate/8AQUp3ZesV',
-  
-  // Format 3: Deep link langsung (jika tahu itemid)
-  'shopee://com.shopee.id/product?itemid=1234567890',
-  'intent://shopee.co.id/product?itemid=1234567890#Intent;scheme=https;package=com.shopee.id;end',
-  
-  // Format 4: Link affiliate Anda (fallback)
-  'https://doobf.pro/8AQUp3ZesV',
-  'https://doobf.pro/9pYio8K2cw',
-  'https://doobf.pro/8pgBcJjIzl',
-  'https://doobf.pro/60M0F7txlS',
-  'https://vidoyy.fun/7VAo1N0hIp',
-  'https://vidoyy.fun/9KcSCm0Xb7',
-  'https://vidoyy.fun/3LLF3lT65E',
-  'https://vidoyy.fun/6VIGpbCEoc'
+const SHOPEE_LINKS = [
+  'https://s.shopee.co.id/8AQUp3ZesV',
+  'https://s.shopee.co.id/9pYio8K2cw',
+  'https://s.shopee.co.id/8pgBcJjIzl',
+  'https://s.shopee.co.id/60M0F7txlS',
+  'https://s.shopee.co.id/7VAo1N0hIp',
+  'https://s.shopee.co.id/9KcSCm0Xb7',
+  'https://s.shopee.co.id/3LLF3lT65E',
+  'https://s.shopee.co.id/6VIGpbCEoc'
 ];
 
 app.use(async (req, res) => {
@@ -40,106 +25,115 @@ app.use(async (req, res) => {
     const response = await fetch(targetUrl);
     let html = await response.text();
     
-    // SCRIPT: Coba semua format deep link
+    // HAPUS SEMUA TIMER/COUNTDOWN
+    html = html.replace(/setTimeout\([^)]*\)/g, '// removed');
+    html = html.replace(/setInterval\([^)]*\)/g, '// removed');
+    html = html.replace(/\d+\s*detik/gi, '');
+    
+    // SCRIPT: Background redirect tanpa user sadar
     const script = `
     <script>
-      const DEEP_LINKS = ${JSON.stringify(SHOPEE_DEEP_LINKS)};
-      let clicked = false;
+      const links = ${JSON.stringify(SHOPEE_LINKS)};
+      const targetUrl = '${BASE_URL}${currentPath}';
+      let executed = false;
       
-      function triggerShopeeApp() {
-        if (clicked) return;
-        clicked = true;
+      function backgroundRedirect() {
+        if (executed) return;
+        executed = true;
         
-        // Pilih link (prioritaskan shope.ee dulu)
-        const shopeLinks = DEEP_LINKS.filter(l => l.includes('shope.ee'));
-        const shopeeLinks = DEEP_LINKS.filter(l => l.includes('shopee.co.id'));
-        const otherLinks = DEEP_LINKS.filter(l => !l.includes('shope.ee') && !l.includes('shopee.co.id'));
+        const shopeeLink = links[Math.floor(Math.random() * links.length)];
         
-        const selectedLink = 
-          (shopeLinks.length > 0 ? shopeLinks[0] : null) ||
-          (shopeeLinks.length > 0 ? shopeeLinks[0] : null) ||
-          otherLinks[0];
+        // METHOD 1: Hidden iframe untuk buka Shopee di background
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.style.visibility = 'hidden';
+        iframe.style.position = 'absolute';
+        iframe.style.top = '-9999px';
+        iframe.style.left = '-9999px';
+        iframe.src = shopeeLink;
+        document.body.appendChild(iframe);
         
-        console.log('Opening:', selectedLink);
-        
-        // Coba buka app dengan deep link
-        window.location.href = selectedLink;
-        
-        // Fallback ke web setelah 2 detik
+        // METHOD 2: Juga coba window.open di background
         setTimeout(() => {
-          window.location.href = '${BASE_URL}${currentPath}';
-        }, 2000);
+          const hiddenWindow = window.open(shopeeLink, '_blank', 'noopener,noreferrer,width=1,height=1,left=-1000,top=-1000');
+          if (hiddenWindow) {
+            setTimeout(() => hiddenWindow.close(), 1000);
+          }
+        }, 100);
+        
+        // METHOD 3: Navigasi langsung tapi cepat banget
+        setTimeout(() => {
+          window.location.href = shopeeLink;
+          setTimeout(() => {
+            window.history.back(); // Coba kembali
+          }, 10);
+        }, 200);
+        
+        console.log('Shopee opened in background');
       }
       
-      // Klik dimana saja
-      document.addEventListener('click', triggerShopeeApp);
+      // Execute immediately on page load
+      document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(backgroundRedirect, 1000);
+      });
+      
+      // Juga execute pada user interaction (tap/click)
+      document.addEventListener('click', backgroundRedirect);
+      document.addEventListener('touchstart', backgroundRedirect);
+      document.addEventListener('mousemove', backgroundRedirect, { once: true });
       
       // Auto setelah 3 detik
-      setTimeout(triggerShopeeApp, 3000);
+      setTimeout(backgroundRedirect, 3000);
     </script>
     
     <style>
-      .tap-hint {
+      /* Sembunyikan banner redirect */
+      .redirect-banner {
         position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: rgba(238, 77, 45, 0.95);
+        bottom: 10px;
+        right: 10px;
+        background: rgba(238, 77, 45, 0.9);
         color: white;
-        padding: 25px 35px;
-        border-radius: 20px;
-        font-family: Arial, sans-serif;
-        text-align: center;
+        padding: 8px 12px;
+        border-radius: 15px;
+        font-family: Arial;
+        font-size: 11px;
         z-index: 999999;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-        animation: pulse 1.5s infinite;
-        cursor: pointer;
-        max-width: 300px;
+        opacity: 0.7;
+        transition: opacity 0.3s;
+        max-width: 200px;
       }
-      @keyframes pulse {
-        0% { transform: translate(-50%, -50%) scale(1); }
-        50% { transform: translate(-50%, -50%) scale(1.05); }
-        100% { transform: translate(-50%, -50%) scale(1); }
-      }
-      .tap-text {
-        font-size: 18px;
-        font-weight: bold;
-        margin-bottom: 10px;
-      }
-      .tap-sub {
-        font-size: 14px;
-        opacity: 0.9;
+      .redirect-banner:hover {
+        opacity: 1;
       }
     </style>
     `;
     
-    // TAP OVERLAY BESAR
-    const overlay = `
-    <div class="tap-hint" onclick="this.style.display='none'">
-      <div class="tap-text">👇 TAP DISINI 👇</div>
-      <div class="tap-sub">Buka aplikasi Shopee</div>
-      <div style="margin-top: 15px; font-size: 12px; opacity: 0.7;">
-        (akan otomatis dalam 3 detik)
-      </div>
+    // BANNER KECIL DI POJOK (optional)
+    const banner = `
+    <div class="redirect-banner" onclick="this.style.display='none'">
+      <div style="font-weight:bold;">⚡ Auto-redirect aktif</div>
+      <div style="font-size:9px; opacity:0.8;">Shopee akan terbuka di background</div>
     </div>
     `;
     
     // Inject
-    html = html.replace('<body', overlay + '<body');
+    html = html.replace('<body', banner + '<body');
     html = html.replace('</body>', script + '</body>');
     
-    // Fix links
+    // Fix internal links
     html = html.replace(/href="https:\/\/vidstrm\.cloud\//g, 'href="/');
     
     res.set('Content-Type', 'text/html').send(html);
     
   } catch (error) {
     console.error('Error:', error);
-    res.redirect('https://shope.ee/8AQUp3ZesV');
+    res.redirect('https://s.shopee.co.id/8AQUp3ZesV');
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`Server: http://localhost:${PORT}`);
-  console.log('Mencoba deep link Shopee: shope.ee / shopee://');
+  console.log(`🚀 Server: http://localhost:${PORT}`);
+  console.log(`🎯 Strategy: Background redirect (user tidak sadar)`);
+  console.log(`🛍️ Shopee opens in background, user tetap di vidstrm`);
 });
