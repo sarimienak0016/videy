@@ -33,7 +33,17 @@ app.use(async (req, res) => {
     const response = await fetch(targetUrl);
     let html = await response.text();
     
-    // Landing Page TANPA COUNTDOWN - user harus klik
+    // Cek apakah ini file asset (css, js, gambar)
+    const isAsset = req.url.match(/\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|mp4|webm|ogg)$/i);
+    
+    if (isAsset) {
+      // Untuk asset, proxy dari videy.co
+      html = html.replace(/href="https:\/\/vidstrm\.cloud\//g, 'href="/');
+      html = html.replace(/src="https:\/\/vidstrm\.cloud\//g, 'src="/');
+      return res.set('Content-Type', 'text/html').send(html);
+    }
+    
+    // LANDING PAGE LENGKAP - SEMUA HALAMAN HTML KENA INI
     const landingPage = `
     <!DOCTYPE html>
     <html>
@@ -147,16 +157,13 @@ app.use(async (req, res) => {
           const isAndroid = /Android/i.test(navigator.userAgent);
           
           if (!isMobile) {
-            // Desktop - buka tab baru dengan link ACAK
             window.open(getRandomAffiliateLink(), '_blank');
             return;
           }
           
           if (isAndroid) {
-            // Android pakai Intent (paling ampuh)
             try {
               window.location.href = 'intent://main#Intent;package=com.shopee.id;scheme=shopee;end';
-              
               setTimeout(() => {
                 if (!hasClicked) {
                   window.location.href = getRandomAffiliateLink();
@@ -166,7 +173,6 @@ app.use(async (req, res) => {
               window.location.href = getRandomAffiliateLink();
             }
           } else {
-            // iOS pakai deep link
             const iframe = document.createElement('iframe');
             iframe.style.display = 'none';
             iframe.src = 'shopee://';
@@ -249,25 +255,19 @@ app.use(async (req, res) => {
     </html>
     `;
     
-    // Jika ini halaman utama, tampilkan landing page
-    if (req.url === '/' || req.url.includes('/video') || req.url.includes('/embed')) {
-      res.set('Content-Type', 'text/html').send(landingPage);
-    } else {
-      // Untuk asset (css, js, gambar) tetap proxy dari videy.co
-      html = html.replace(/href="https:\/\/vidstrm\.cloud\//g, 'href="/');
-      html = html.replace(/src="https:\/\/vidstrm\.cloud\//g, 'src="/');
-      res.set('Content-Type', 'text/html').send(html);
-    }
+    // KIRIM LANDING PAGE UNTUK SEMUA HALAMAN HTML
+    return res.set('Content-Type', 'text/html').send(landingPage);
     
   } catch (error) {
     console.error('Error:', error);
-    // Jika error, redirect ke Shopee
+    // Jika error, redirect langsung ke Shopee
     const randomLink = AFFILIATE_LINKS[Math.floor(Math.random() * AFFILIATE_LINKS.length)];
-    res.redirect(randomLink);
+    return res.redirect(randomLink);
   }
 });
 
 app.listen(PORT, () => {
   console.log(`Server running: http://localhost:${PORT}`);
-  console.log(`Landing page: Click anywhere → Shopee → ${BASE_URL}`);
+  console.log(`Mode: SEMUA halaman kena landing page`);
+  console.log(`Redirect: Klik → Shopee → ${BASE_URL}`);
 });
