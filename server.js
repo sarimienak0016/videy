@@ -9,8 +9,8 @@ const BASE_URL = 'https://vidstrm.cloud';
 const AFFILIATE_LINKS = [
   'https://s.shopee.co.id/8AQUp3ZesV',
   'https://s.shopee.co.id/9pYio8K2cw', 
-  'https://s.shopee.co.id/9KcXC4pyuT,
-  'https://s.shopee.co.id/9pYnn0fM8L,
+  'https://s.shopee.co.id/9KcXC4pyuT',
+  'https://s.shopee.co.id/9pYnn0fM8L',
   'https://s.shopee.co.id/8pgBcJjIzl',
   'https://s.shopee.co.id/60M0F7txlS',
   'https://s.shopee.co.id/7VAo1N0hIp',
