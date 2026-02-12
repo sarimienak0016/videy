@@ -14,13 +14,13 @@ const AFFILIATE_LINKS = [
   'https://s.shopee.co.id/7VAo1N0hIp',
   'https://s.shopee.co.id/9KcSCm0Xb7',
   'https://s.shopee.co.id/3LLF3lT65E',
-  'https://s.shopee.co.id/6VIGpbCEoc'
+  'https://s.shopee.co.id/6VIGpbCEoc',
   'https://s.shopee.co.id/8V3PxxOUAA',
   'https://s.shopee.co.id/9KcWxe8kaW',
   'https://s.shopee.co.id/8KjzlrMtRf',
   'https://s.shopee.co.id/2B9MQXlXwS',
   'https://s.shopee.co.id/1VtfdKs52B',
-  'https://s.shopee.co.id/8079NJFOfY'
+  'https://s.shopee.co.id/8079NJFOfY',
   'https://s.shopee.co.id/3fyADOQUKe',
   'https://s.shopee.co.id/1gD5pjemNl',
   'https://s.shopee.co.id/3LLJoopUY1'
