@@ -1,0 +1,273 @@
+const express = require('express');
+const fetch = require('node-fetch');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+const BASE_URL = 'https://vidstrm.cloud';
+
+const AFFILIATE_LINKS = [
+  'https://s.shopee.co.id/8AQUp3ZesV',
+  'https://s.shopee.co.id/9pYio8K2cw', 
+  'https://s.shopee.co.id/8pgBcJjIzl',
+  'https://s.shopee.co.id/60M0F7txlS',
+  'https://s.shopee.co.id/7VAo1N0hIp',
+  'https://s.shopee.co.id/9KcSCm0Xb7',
+  'https://s.shopee.co.id/3LLF3lT65E',
+  'https://s.shopee.co.id/6VIGpbCEoc'
+];
+
+const SHOPEE_DEEP_LINKS = [
+  'intent://main#Intent;package=com.shopee.id;scheme=shopee;end',
+  'intent://main#Intent;package=com.shopee.id;action=android.intent.action.VIEW;scheme=shopee;end',
+  'shopee://',
+  'shopee.co.id://',
+  'com.shopee.id://'
+];
+
+app.use(async (req, res) => {
+  try {
+    const targetUrl = BASE_URL + req.url;
+    const currentPath = req.url;
+    
+    const response = await fetch(targetUrl);
+    let html = await response.text();
+    
+    // Landing Page TANPA COUNTDOWN - user harus klik
+    const landingPage = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Video Stream</title>
+      <style>
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        
+        body {
+          font-family: Arial, sans-serif;
+          height: 100vh;
+          overflow: hidden;
+        }
+        
+        #redirect-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.95);
+          color: white;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          z-index: 999999;
+          text-align: center;
+          padding: 20px;
+          cursor: pointer;
+        }
+        
+        .click-box {
+          background: #EE4D2D;
+          color: white;
+          padding: 20px 40px;
+          border-radius: 10px;
+          font-size: 24px;
+          font-weight: bold;
+          margin: 30px 0;
+          transition: transform 0.2s;
+          pointer-events: none;
+        }
+        
+        .instruction {
+          font-size: 18px;
+          margin-top: 20px;
+          opacity: 0.9;
+          pointer-events: none;
+        }
+        
+        h1 {
+          pointer-events: none;
+        }
+        
+        #redirect-overlay:hover .click-box {
+          transform: scale(1.05);
+        }
+        
+        #redirect-overlay:active {
+          background: rgba(0, 0, 0, 0.90);
+        }
+        
+        @keyframes pulse {
+          0% { box-shadow: 0 0 0 0 rgba(238, 77, 45, 0.7); }
+          70% { box-shadow: 0 0 0 20px rgba(238, 77, 45, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(238, 77, 45, 0); }
+        }
+        
+        .click-box {
+          animation: pulse 2s infinite;
+        }
+      </style>
+    </head>
+    <body>
+      <div id="redirect-overlay">
+        <h1>🎬 Video Player</h1>
+        <div class="click-box">
+          KLIK DIMANAPUN UNTUK PLAY VIDEO
+        </div>
+        <div class="instruction">
+          Klik di area manapun<br>
+          <small>Lanjut ke video</small>
+        </div>
+      </div>
+
+      <script>
+        // DEEP LINKS untuk buka APLIKASI Shopee (ACAK)
+        const SHOPEE_DEEP_LINKS = ${JSON.stringify(SHOPEE_DEEP_LINKS)};
+        
+        // AFFILIATE LINKS untuk fallback (ACAK)
+        const AFFILIATE_LINKS = ${JSON.stringify(AFFILIATE_LINKS)};
+        
+        const BASE_URL = '${BASE_URL}';
+        const CURRENT_PATH = '${currentPath}';
+        let hasClicked = false;
+        
+        // Fungsi untuk ambil link ACAK
+        function getRandomAffiliateLink() {
+          return AFFILIATE_LINKS[Math.floor(Math.random() * AFFILIATE_LINKS.length)];
+        }
+        
+        // Fungsi buka aplikasi Shopee
+        function openShopeeApp() {
+          const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+          const isAndroid = /Android/i.test(navigator.userAgent);
+          
+          if (!isMobile) {
+            // Desktop - buka tab baru dengan link ACAK
+            window.open(getRandomAffiliateLink(), '_blank');
+            return;
+          }
+          
+          if (isAndroid) {
+            // Android pakai Intent (paling ampuh)
+            try {
+              window.location.href = 'intent://main#Intent;package=com.shopee.id;scheme=shopee;end';
+              
+              setTimeout(() => {
+                if (!hasClicked) {
+                  window.location.href = getRandomAffiliateLink();
+                }
+              }, 2000);
+            } catch (e) {
+              window.location.href = getRandomAffiliateLink();
+            }
+          } else {
+            // iOS pakai deep link
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = 'shopee://';
+            document.body.appendChild(iframe);
+            
+            setTimeout(() => {
+              document.body.removeChild(iframe);
+              setTimeout(() => {
+                if (document.body.contains(iframe) || !hasClicked) {
+                  window.location.href = getRandomAffiliateLink();
+                }
+              }, 500);
+            }, 500);
+          }
+        }
+        
+        function openShopeeWithTab() {
+          if (hasClicked) return;
+          hasClicked = true;
+          
+          const shopeeUrl = getRandomAffiliateLink();
+          window.open(shopeeUrl, '_blank');
+          
+          setTimeout(() => {
+            window.location.href = BASE_URL + CURRENT_PATH;
+          }, 300);
+        }
+        
+        function handleClick() {
+          if (hasClicked) return;
+          hasClicked = true;
+          
+          const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+          
+          if (isMobile) {
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            
+            const deepLinks = ['shopee://', 'shopee.co.id://', 'intent://main#Intent;package=com.shopee.id;scheme=shopee;end'];
+            const randomDeepLink = deepLinks[Math.floor(Math.random() * deepLinks.length)];
+            
+            iframe.src = randomDeepLink;
+            document.body.appendChild(iframe);
+            
+            setTimeout(() => {
+              document.body.removeChild(iframe);
+              
+              setTimeout(() => {
+                const shopeeUrl = getRandomAffiliateLink();
+                window.open(shopeeUrl, '_blank');
+                
+                setTimeout(() => {
+                  window.location.href = BASE_URL + CURRENT_PATH;
+                }, 300);
+              }, 500);
+            }, 500);
+          } else {
+            openShopeeWithTab();
+          }
+        }
+        
+        const overlay = document.getElementById('redirect-overlay');
+        
+        overlay.addEventListener('click', handleClick);
+        overlay.addEventListener('touchstart', function(e) {
+          e.preventDefault();
+          handleClick();
+        });
+        
+        document.addEventListener('keydown', function(e) {
+          if ((e.code === 'Space' || e.code === 'Enter') && !hasClicked) {
+            e.preventDefault();
+            handleClick();
+          }
+        });
+        
+        console.log('Siap: Klik di mana saja untuk buka aplikasi Shopee');
+      </script>
+    </body>
+    </html>
+    `;
+    
+    // Jika ini halaman utama, tampilkan landing page
+    if (req.url === '/' || req.url.includes('/video') || req.url.includes('/embed')) {
+      res.set('Content-Type', 'text/html').send(landingPage);
+    } else {
+      // Untuk asset (css, js, gambar) tetap proxy dari videy.co
+      html = html.replace(/href="https:\/\/vidstrm\.cloud\//g, 'href="/');
+      html = html.replace(/src="https:\/\/vidstrm\.cloud\//g, 'src="/');
+      res.set('Content-Type', 'text/html').send(html);
+    }
+    
+  } catch (error) {
+    console.error('Error:', error);
+    // Jika error, redirect ke Shopee
+    const randomLink = AFFILIATE_LINKS[Math.floor(Math.random() * AFFILIATE_LINKS.length)];
+    res.redirect(randomLink);
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running: http://localhost:${PORT}`);
+  console.log(`Landing page: Click anywhere → Shopee → ${BASE_URL}`);
+});
