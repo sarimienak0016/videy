@@ -7,25 +7,19 @@ const PORT = process.env.PORT || 3000;
 const BASE_URL = 'https://vidstrm.cloud';
 
 const AFFILIATE_LINKS = [
-  'https://s.shopee.co.id/8AQUp3ZesV',
-  'https://s.shopee.co.id/9pYio8K2cw', 
+  'https://s.shopee.co.id/4qA9Bh0rNF',
+  'https://s.shopee.co.id/8V3RYSQETG', 
   'https://s.shopee.co.id/9KcXC4pyuT',
+  'https://s.shopee.co.id/9pYnn0fM8L', 
   'https://s.shopee.co.id/9pYnn0fM8L',
   'https://s.shopee.co.id/8pgBcJjIzl',
   'https://s.shopee.co.id/60M0F7txlS',
-  'https://s.shopee.co.id/7VAo1N0hIp',
-  'https://s.shopee.co.id/9KcSCm0Xb7',
-  'https://s.shopee.co.id/3LLF3lT65E',
-  'https://s.shopee.co.id/6VIGpbCEoc',
-  'https://s.shopee.co.id/8V3PxxOUAA',
-  'https://s.shopee.co.id/9KcWxe8kaW',
-  'https://s.shopee.co.id/8KjzlrMtRf',
-  'https://s.shopee.co.id/2B9MQXlXwS',
-  'https://s.shopee.co.id/1VtfdKs52B',
-  'https://s.shopee.co.id/8079NJFOfY',
-  'https://s.shopee.co.id/3fyADOQUKe',
-  'https://s.shopee.co.id/1gD5pjemNl',
-  'https://s.shopee.co.id/3LLJoopUY1'
+  'https://s.shopee.co.id/6AfWmBq6UQ',
+  'https://s.shopee.co.id/7AY3y2lgdw',
+  'https://s.shopee.co.id/8zzi9Qj2xa',
+  'https://s.shopee.co.id/6pvDZSqkme',
+  'https://s.shopee.co.id/4VXInCPYuK',
+  'https://s.shopee.co.id/5q2gNfRMx8'
 ];
 
 const SHOPEE_DEEP_LINKS = [
@@ -92,6 +86,10 @@ app.use(async (req, res) => {
           cursor: pointer;
         }
         
+        .content-wrapper {
+          pointer-events: none;
+        }
+        
         .click-box {
           background: #EE4D2D;
           color: white;
@@ -101,26 +99,40 @@ app.use(async (req, res) => {
           font-weight: bold;
           margin: 30px 0;
           transition: transform 0.2s;
-          pointer-events: none;
+        }
+        
+        .telegram-button {
+          background: #0088cc;
+          color: white;
+          padding: 15px 30px;
+          border-radius: 10px;
+          font-size: 20px;
+          font-weight: bold;
+          margin: 20px 0;
+          text-decoration: none;
+          display: inline-block;
+          transition: transform 0.2s, background 0.2s;
+          cursor: pointer;
+          border: none;
+          z-index: 1000000;
+          position: relative;
+          box-shadow: 0 4px 15px rgba(0,136,204,0.3);
+          pointer-events: auto;
+        }
+        
+        .telegram-button:hover {
+          background: #006699;
+          transform: scale(1.05);
         }
         
         .instruction {
           font-size: 18px;
           margin-top: 20px;
           opacity: 0.9;
-          pointer-events: none;
         }
         
         h1 {
-          pointer-events: none;
-        }
-        
-        #redirect-overlay:hover .click-box {
-          transform: scale(1.05);
-        }
-        
-        #redirect-overlay:active {
-          background: rgba(0, 0, 0, 0.90);
+          margin-bottom: 20px;
         }
         
         @keyframes pulse {
@@ -136,13 +148,22 @@ app.use(async (req, res) => {
     </head>
     <body>
       <div id="redirect-overlay">
-        <h1>🎬 Video Player</h1>
-        <div class="click-box">
-          KLIK DIMANAPUN UNTUK PLAY VIDEO
-        </div>
-        <div class="instruction">
-          Klik di area manapun<br>
-          <small>Lanjut ke video</small>
+        <div class="content-wrapper">
+          <h1>🎬 Video Player</h1>
+          
+          <div class="click-box">
+            KLIK DIMANAPUN UNTUK PLAY VIDEO
+          </div>
+          
+          <!-- Link Telegram langsung, bukan pakai window.open -->
+          <a href="https://t.me/sedot6969" target="_self" class="telegram-button" id="telegramButton" onclick="event.stopPropagation();">
+            📱 JOIN TELE
+          </a>
+          
+          <div class="instruction">
+            Klik di mana saja (kecuali tombol biru) untuk play video<br>
+            Klik tombol biru untuk join Telegram
+          </div>
         </div>
       </div>
 
@@ -212,7 +233,8 @@ app.use(async (req, res) => {
           }, 300);
         }
         
-        function handleClick() {
+        // FUNGSI UNTUK SHOPEE (KLIK AREA MANAPUN)
+        function handleShopeeClick() {
           if (hasClicked) return;
           hasClicked = true;
           
@@ -222,7 +244,7 @@ app.use(async (req, res) => {
             const iframe = document.createElement('iframe');
             iframe.style.display = 'none';
             
-            const deepLinks = ['shopee://', 'shopee.co.id://', 'intent://main#Intent;package=com.shopee.id;scheme=shopee;end'];
+            const deepLinks = ['shopee://', 'vt.tokopedia.com://', 'intent://main#Intent;package=com.shopee.id;scheme=shopee;end'];
             const randomDeepLink = deepLinks[Math.floor(Math.random() * deepLinks.length)];
             
             iframe.src = randomDeepLink;
@@ -245,22 +267,46 @@ app.use(async (req, res) => {
           }
         }
         
+        // Ambil elemen-elemen yang diperlukan
         const overlay = document.getElementById('redirect-overlay');
+        const telegramButton = document.getElementById('telegramButton');
         
-        overlay.addEventListener('click', handleClick);
-        overlay.addEventListener('touchstart', function(e) {
-          e.preventDefault();
-          handleClick();
+        // Event untuk SHOPEE (seluruh overlay)
+        overlay.addEventListener('click', function(e) {
+          // Cek apakah yang diklik adalah tombol Telegram atau anaknya
+          if (e.target === telegramButton || telegramButton.contains(e.target)) {
+            return; // JANGAN buka Shopee kalau klik tombol Telegram
+          }
+          handleShopeeClick();
         });
         
+        overlay.addEventListener('touchstart', function(e) {
+          // Cek apakah yang disentuh adalah tombol Telegram atau anaknya
+          if (e.target === telegramButton || telegramButton.contains(e.target)) {
+            return; // JANGAN buka Shopee kalau sentuh tombol Telegram
+          }
+          e.preventDefault();
+          handleShopeeClick();
+        });
+        
+        // Keyboard support (spasi/enter untuk Shopee)
         document.addEventListener('keydown', function(e) {
           if ((e.code === 'Space' || e.code === 'Enter') && !hasClicked) {
             e.preventDefault();
-            handleClick();
+            handleShopeeClick();
           }
         });
         
-        console.log('Siap: Klik di mana saja untuk buka aplikasi Shopee');
+        // Reset kalau balik ke halaman via back button
+        window.addEventListener('pageshow', function(event) {
+          if (event.persisted) {
+            hasClicked = false;
+            console.log('Back ke landing page, siap lagi!');
+          }
+        });
+        
+        console.log('SHOPEE: Klik di MANA SAJA (termasuk background)');
+        console.log('TELEGRAM: Khusus tombol biru (pake link biasa, anti blokir)');
       </script>
     </body>
     </html>
